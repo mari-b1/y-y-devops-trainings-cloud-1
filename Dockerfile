@@ -1,12 +1,11 @@
-FROM golang:1.21
-
-WORKDIR /usr/src/app
-
-# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
-COPY go.mod go.sum ./
+FROM golang:1.21 as build
+WORKDIR /app
+COPY ./catgpt/go.mod ./catgpt/go.sum  ./
 RUN go mod download && go mod verify
+COPY ./catgpt/ ./
+RUN CGO_ENABLED=0 go build -o /app/catgpt ./...
 
-COPY . .
-RUN CGO_ENABLED=0 go build -o path/to/resulting/binary ./...
-
-CMD ["app"]
+FROM gcr.io/distroless/static-debian12:latest-amd64
+COPY --from=build /app/catgpt /
+EXPOSE 8080
+CMD ["/catgpt"]
