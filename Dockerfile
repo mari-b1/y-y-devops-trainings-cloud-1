@@ -1,11 +1,11 @@
+ARG GOARCH=amd64
 FROM golang:1.21 as build
-WORKDIR /app
-COPY ./catgpt/go.mod ./catgpt/go.sum  ./
-RUN go mod download && go mod verify
-COPY ./catgpt/ ./
-RUN CGO_ENABLED=0 go build -o /app/catgpt ./...
+WORKDIR /go/src/catgpt
+COPY . .
+RUN go mod download
+RUN CGO_ENABLED=0 GOARCH=${GOARCH} go build -o /go/bin/catgpt
 
-FROM gcr.io/distroless/static-debian12:latest-amd64
-COPY --from=build /app/catgpt /
-EXPOSE 8080
+FROM gcr.io/distroless/static-debian12:latest-$GOARCH
+COPY --from=build /go/bin/catgpt /
+EXPOSE 8080 9090
 CMD ["/catgpt"]
